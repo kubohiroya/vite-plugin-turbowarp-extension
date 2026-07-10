@@ -1,6 +1,18 @@
 import type {OutputBundle, OutputChunk} from 'rollup';
 import type {Plugin, UserConfig} from 'vite';
 
+export {
+  DEFAULT_BEGIN_MARKER,
+  DEFAULT_END_MARKER,
+  assertGeneratedBlockSectionCurrent,
+  generateBlockDocumentationMarkdown,
+  replaceGeneratedBlockSection,
+  type BlockDocumentation,
+  type BlockDocumentationEntry,
+  type DocumentedBlockType,
+  type ReadmeBlockSectionOptions
+} from './readme.js';
+
 export interface TurboWarpExtensionOptions {
   id: string;
   name: string;
