@@ -110,6 +110,9 @@ function formatBlockType(blockType: DocumentedBlockType): string {
 }
 
 function findAllIndexes(source: string, search: string): number[] {
+  if (search.length === 0) {
+    return [];
+  }
   const indexes: number[] = [];
   let offset = 0;
 
