@@ -8,7 +8,7 @@
 
 The plugin:
 
-1. configures Vite to emit exactly one JavaScript chunk;
+1. configures Vite to emit exactly one JavaScript file;
 2. prevents code splitting and leftover module syntax;
 3. adds TurboWarp Extension Gallery metadata;
 4. wraps the generated bundle as `(function (Scratch) { ... })(Scratch);`;
@@ -51,14 +51,15 @@ A successful build produces one JavaScript file with the following properties:
 - the implementation is wrapped in an IIFE that receives `Scratch` as an argument;
 - strict mode is enabled;
 - `Scratch.extensions.register(...)` occurs exactly once;
-- no additional JavaScript chunks are emitted.
+- no additional JavaScript chunks are emitted;
+- no additional assets are emitted.
 
 ## Vite Integration
 
 The plugin uses the following hooks:
 
 - `config` to enforce the build format, target, and single-file output;
-- `generateBundle` to validate and transform the final bundle.
+- `generateBundle` to parse, validate, and transform the final bundle.
 
 The plugin is applied only during `vite build`.
 
