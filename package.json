@@ -1,12 +1,29 @@
 {
   "name": "@kubohiroya/vite-plugin-turbowarp-extension",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Vite plugin for building TypeScript projects as single-file TurboWarp extensions.",
   "type": "module",
   "license": "MPL-2.0",
   "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubohiroya/vite-plugin-turbowarp-extension.git"
+  },
+  "homepage": "https://github.com/kubohiroya/vite-plugin-turbowarp-extension#readme",
+  "bugs": {
+    "url": "https://github.com/kubohiroya/vite-plugin-turbowarp-extension/issues"
+  },
+  "keywords": [
+    "vite",
+    "turbowarp",
+    "scratch",
+    "extension",
+    "plugin",
+    "typescript"
+  ],
   "files": [
-    "dist"
+    "dist",
+    "docs"
   ],
   "publishConfig": {
     "access": "public"
@@ -21,10 +38,14 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "pnpm run build",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm run check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "pnpm run typecheck && pnpm run test && pnpm run build"
+    "check": "npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "acorn": "^8.18.0"
   },
   "peerDependencies": {
     "vite": ">=6.0.0"
@@ -36,8 +57,6 @@
     "vitest": "^3.2.7"
   },
   "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=10.26.1"
-  },
-  "packageManager": "pnpm@10.29.3"
+    "node": ">=20.0.0"
+  }
 }

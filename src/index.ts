@@ -1,3 +1,4 @@
+import {parse, type Node} from 'acorn';
 import type {OutputBundle, OutputChunk} from 'rollup';
 import type {Plugin, UserConfig} from 'vite';
 
@@ -12,8 +13,15 @@ export interface TurboWarpExtensionOptions {
   target?: string;
 }
 
-const MODULE_SYNTAX = /(^|\n)\s*(?:import|export)\s/m;
-const REGISTER_CALL = /Scratch\.extensions\.register\s*\(/g;
+type AstNode = Node & Record<string, unknown>;
+
+const MODULE_SYNTAX_NODE_TYPES = new Set([
+  'ExportAllDeclaration',
+  'ExportDefaultDeclaration',
+  'ExportNamedDeclaration',
+  'ImportDeclaration',
+  'ImportExpression'
+]);
 
 export function turboWarpExtension(options: TurboWarpExtensionOptions): Plugin {
   validateOptions(options);
@@ -57,6 +65,8 @@ export function createTurboWarpBundle(
   options: TurboWarpExtensionOptions,
   source: string
 ): string {
+  validateOptions(options);
+
   const metadata = [
     `// Name: ${options.name}`,
     `// ID: ${options.id}`,
@@ -72,11 +82,38 @@ export function validateBundleCode(
   source: string,
   fail: (message: string) => never = defaultFailure
 ): void {
-  if (MODULE_SYNTAX.test(source)) {
+  let ast: Node;
+  try {
+    ast = parse(source, {
+      allowHashBang: true,
+      ecmaVersion: 'latest',
+      sourceType: 'module'
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    fail(`The generated TurboWarp extension is not valid JavaScript: ${detail}`);
+  }
+
+  let containsModuleSyntax = false;
+  let registrationCount = 0;
+
+  walkAst(ast, (node) => {
+    if (
+      MODULE_SYNTAX_NODE_TYPES.has(node.type) ||
+      (node.type === 'MetaProperty' && isIdentifier(node.meta, 'import'))
+    ) {
+      containsModuleSyntax = true;
+    }
+
+    if (isScratchRegistrationCall(node)) {
+      registrationCount += 1;
+    }
+  });
+
+  if (containsModuleSyntax) {
     fail('The generated TurboWarp extension must not contain import or export statements.');
   }
 
-  const registrationCount = source.match(REGISTER_CALL)?.length ?? 0;
   if (registrationCount !== 1) {
     fail(
       `Expected exactly one Scratch.extensions.register(...) call, but found ${registrationCount}.`
@@ -99,6 +136,15 @@ function validateOptions(options: TurboWarpExtensionOptions): void {
     if (typeof value !== 'string' || value.trim() === '') {
       throw new TypeError(`TurboWarp extension option "${key}" must be a non-empty string.`);
     }
+    if (/[\r\n]/.test(value)) {
+      throw new TypeError(`TurboWarp extension option "${key}" must be a single-line string.`);
+    }
+  }
+
+  if (!/^[a-z0-9]+$/.test(options.id)) {
+    throw new TypeError(
+      'TurboWarp extension option "id" must contain only lowercase letters and numbers.'
+    );
   }
 
   if (!options.fileName.endsWith('.js')) {
@@ -110,20 +156,71 @@ function getOnlyJavaScriptChunk(
   bundle: OutputBundle,
   fail: (message: string) => never
 ): OutputChunk {
-  const chunks = Object.values(bundle).filter(
-    (item): item is OutputChunk => item.type === 'chunk'
+  const outputs = Object.values(bundle);
+  const output = outputs[0];
+
+  if (outputs.length !== 1 || !output || output.type !== 'chunk') {
+    const files = outputs.map((item) => `${item.fileName} (${item.type})`).join(', ');
+    fail(
+      `Expected exactly one JavaScript output file, but found ${outputs.length}` +
+        (files.length > 0 ? `: ${files}.` : '.')
+    );
+  }
+
+  return output;
+}
+
+function walkAst(node: Node, visit: (node: AstNode) => void): void {
+  const astNode = node as AstNode;
+  visit(astNode);
+
+  for (const value of Object.values(astNode)) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (isNode(item)) {
+          walkAst(item, visit);
+        }
+      }
+    } else if (isNode(value)) {
+      walkAst(value, visit);
+    }
+  }
+}
+
+function isScratchRegistrationCall(node: AstNode): boolean {
+  if (node.type !== 'CallExpression' || !isMember(node.callee, 'register')) {
+    return false;
+  }
+
+  return (
+    isMember(node.callee.object, 'extensions') &&
+    isIdentifier(node.callee.object.object, 'Scratch')
   );
+}
 
-  if (chunks.length !== 1) {
-    fail(`Expected exactly one JavaScript chunk, but found ${chunks.length}.`);
-  }
+function isMember(
+  value: unknown,
+  propertyName: string
+): value is AstNode & {object: unknown} {
+  return (
+    isNode(value) &&
+    value.type === 'MemberExpression' &&
+    value.computed === false &&
+    isIdentifier(value.property, propertyName)
+  );
+}
 
-  const chunk = chunks[0];
-  if (!chunk) {
-    fail('The JavaScript output chunk was not found.');
-  }
+function isIdentifier(value: unknown, name: string): boolean {
+  return isNode(value) && value.type === 'Identifier' && value.name === name;
+}
 
-  return chunk;
+function isNode(value: unknown): value is AstNode {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    typeof value.type === 'string'
+  );
 }
 
 function indent(source: string, spaces: number): string {

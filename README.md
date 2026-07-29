@@ -6,13 +6,13 @@ A Vite plugin for building TypeScript projects as single-file TurboWarp extensio
 
 This project is under initial development. The public API may change before the first stable release.
 
+Requires Node.js 20 or later and Vite 6 or later. This package is ESM-only.
+
 ## Installation
 
 ```bash
 npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension
 ```
-
-Until the package is published, install it from GitHub or use a local workspace dependency.
 
 ## Usage
 
@@ -70,10 +70,12 @@ The generated file has the following outer structure:
 
 The plugin rejects builds that:
 
-- produce more than one JavaScript chunk;
+- produce any output other than one JavaScript chunk;
 - retain `import` or `export` statements;
 - contain zero or multiple `Scratch.extensions.register(...)` calls;
 - use an output file name that does not end in `.js`.
+
+Metadata values must be single-line strings. The extension ID may contain only lowercase letters and numbers.
 
 See [docs/architecture.md](docs/architecture.md) for the design and build contract.
 
