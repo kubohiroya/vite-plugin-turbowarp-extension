@@ -66,7 +66,7 @@ export function replaceGeneratedBlockSection(
 
   const beginIndex = beginIndexes[0];
   const endIndex = endIndexes[0];
-  if (beginIndex === undefined || endIndex === undefined || endIndex < beginIndex) {
+  if (beginIndex === undefined || endIndex === undefined || endIndex < beginIndex + beginMarker.length) {
     throw new Error('The generated block section end marker must appear after the begin marker.');
   }
 
