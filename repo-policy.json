@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "productName": "vite-plugin-turbowarp-extension",
+  "packageType": "vite-plugin",
+  "licensePolicy": "mpl-2.0",
+  "packageManager": "npm",
+  "node": {
+    "minimum": "20"
+  },
+  "vite": {
+    "peerRange": ">=6.0.0"
+  },
+  "templateBoundary": {
+    "templateOwns": ["project scaffold", "README generation wiring", "block definitions", "extension manifest generation"],
+    "pluginOwns": ["single-file output", "metadata header", "IIFE wrapper", "registration-count validation", "module syntax rejection"]
+  },
+  "exceptions": {
+    "extensionId": true,
+    "blockReference": true,
+    "extensionBundle": true,
+    "runtimeSafetyGuide": true
+  }
+}

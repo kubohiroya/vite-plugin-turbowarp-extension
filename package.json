@@ -23,11 +23,15 @@
   ],
   "files": [
     "dist",
-    "docs"
+    "docs",
+    "README.md",
+    "LICENSE"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
+  "packageManager": "npm@11.19.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -42,7 +46,9 @@
     "prepublishOnly": "npm run check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run test && npm run build"
+    "repo:check": "node scripts/check-repo.mjs",
+    "pack:check": "npm pack --dry-run --ignore-scripts",
+    "check": "npm run typecheck && npm run test && npm run build && npm run repo:check && npm run pack:check"
   },
   "dependencies": {
     "acorn": "^8.18.0"
