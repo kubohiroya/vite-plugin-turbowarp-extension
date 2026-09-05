@@ -1,6 +1,11 @@
 import {describe, expect, it} from 'vitest';
-import type {OutputAsset, OutputChunk} from 'rollup';
-import {build, type Plugin, type ResolvedConfig, type UserConfig} from 'vite';
+import {
+  build,
+  type Plugin,
+  type ResolvedConfig,
+  type Rolldown,
+  type UserConfig
+} from 'vite';
 import {
   createTurboWarpBundle,
   turboWarpExtension,
@@ -327,7 +332,7 @@ async function buildFixture({
   pluginOptions,
   userBuild,
   onResolved
-}: FixtureOptions = {}): Promise<Array<OutputAsset | OutputChunk>> {
+}: FixtureOptions = {}): Promise<Array<Rolldown.OutputAsset | Rolldown.OutputChunk>> {
   const virtualEntry: Plugin = {
     name: 'test-virtual-entry',
     resolveId(id) {

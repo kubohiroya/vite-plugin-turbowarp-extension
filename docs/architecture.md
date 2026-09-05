@@ -98,7 +98,7 @@ it as ordinary source text:
 A header passed through the banner therefore either disappears or ends up in the wrong place,
 and TurboWarp reads the metadata from the top of the file. The plugin concatenates the header
 and the prelude in `generateBundle`, which runs after `renderChunk`, so neither is exposed to
-the minifier. This holds for both the esbuild path (Vite 6/7) and the Oxc path (Vite 8).
+the minifier.
 
 ### Why the prelude sits outside the wrapper
 
@@ -112,11 +112,25 @@ dynamic imports. Parsing cost is roughly 0.2 s per megabyte of prelude.
 
 ### Minification
 
-`build.minify` is left to the consuming project unless the `minify` option is set. Note that
-Vite forces `minifyWhitespace: false` for `build.lib` builds in the `es` format to preserve
-pure annotations, so under Vite 6/7 `build.minify: 'esbuild'` shortens identifiers only. Full
-minification requires `build.minify: 'terser'` there, or `rollupOptions.output.minify` under
-Vite 8.
+`build.minify` is left to the consuming project unless the `minify` option is set. The plugin's
+`config` hook only supplies a default when neither has chosen a value, so a project keeps
+whatever it configured.
+
+Two knobs reach the minifier, and they do not behave the same way here:
+
+- `build.minify` goes through Vite, which forces `minifyWhitespace: false` for `build.lib`
+  builds in the `es` format to preserve pure annotations. The plugin always uses that
+  combination, so this path shortens identifiers and syntax but leaves whitespace in place.
+- `rollupOptions.output.minify` goes straight to Rolldown's Oxc minifier and is not subject to
+  that rule, so it is the option to reach for when output size matters.
+
+Legal comments need both layers to agree. `output.minify.codegen.legalComments` alone is not
+enough: `output.comments` drops legal comments before the minifier sees them, so
+`{comments: {legal: true}}` must accompany it. Without that pairing the notices of bundled
+dependencies disappear silently.
+
+Oxc emits non-ASCII characters as-is, so extension names and block text in other scripts are
+not escaped and no charset option is needed.
 
 ## Vite Integration
 
@@ -131,4 +145,9 @@ The plugin is applied only during `vite build`.
 
 ## Compatibility
 
-The initial release targets Vite 6 and later and emits JavaScript targeting ES2020-compatible browsers.
+The plugin targets Vite 8 and later and emits JavaScript targeting ES2020-compatible browsers.
+
+Vite 8 replaced Rollup with Rolldown. The two pipelines differ in the option names for
+single-chunk output, in how `build.minify` behaves, and in the configuration surface for legal
+comments and character escaping. Supporting both would mean carrying a fork of the build
+contract, so 0.3.0 narrowed the range instead. Projects on Vite 6 or 7 should stay on 0.2.x.

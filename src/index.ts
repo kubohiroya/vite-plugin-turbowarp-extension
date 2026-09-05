@@ -1,6 +1,5 @@
 import {parse, type Node} from 'acorn';
-import type {OutputBundle, OutputChunk} from 'rollup';
-import type {Plugin, UserConfig} from 'vite';
+import type {Plugin, Rolldown, UserConfig} from 'vite';
 
 export {
   DEFAULT_BEGIN_MARKER,
@@ -85,7 +84,7 @@ export function turboWarpExtension(options: TurboWarpExtensionOptions): Plugin {
           },
           rollupOptions: {
             output: {
-              inlineDynamicImports: true
+              codeSplitting: false
             }
           }
         }
@@ -392,9 +391,9 @@ function validateOptions(options: TurboWarpExtensionOptions): void {
 }
 
 function getOnlyJavaScriptChunk(
-  bundle: OutputBundle,
+  bundle: Rolldown.OutputBundle,
   fail: (message: string) => never
-): OutputChunk {
+): Rolldown.OutputChunk {
   const outputs = Object.values(bundle);
   const output = outputs[0];
 
