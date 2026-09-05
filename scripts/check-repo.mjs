@@ -8,6 +8,10 @@ const errors = [];
 // Vite 7 and later require this range, so the plugin cannot support less.
 const NODE_ENGINE_RANGE = '^20.19.0 || >=22.12.0';
 
+// Vite 8 replaced Rollup with Rolldown; the plugin targets that build pipeline only.
+const VITE_PEER_RANGE = '>=8.0.0';
+const VITE_REQUIREMENT_TEXT = 'Vite 8 or later';
+
 const packageMetadata = JSON.parse(await readFile('package.json', 'utf8'));
 const policy = JSON.parse(await readFile('repo-policy.json', 'utf8'));
 const readme = await readFile('README.md', 'utf8');
@@ -58,8 +62,8 @@ function checkPackageMetadata() {
   if (packageMetadata.engines?.node !== NODE_ENGINE_RANGE) {
     errors.push(`package.json engines.node must be ${NODE_ENGINE_RANGE}`);
   }
-  if (packageMetadata.peerDependencies?.vite !== '>=6.0.0') {
-    errors.push('package.json peerDependencies.vite must be >=6.0.0');
+  if (packageMetadata.peerDependencies?.vite !== VITE_PEER_RANGE) {
+    errors.push(`package.json peerDependencies.vite must be ${VITE_PEER_RANGE}`);
   }
   if (packageMetadata.repository?.url !== 'git+https://github.com/kubohiroya/vite-plugin-turbowarp-extension.git') {
     errors.push('package.json repository.url must point to the current repository');
@@ -92,7 +96,7 @@ function checkReadme() {
   if (!readme.includes(`@kubohiroya/vite-plugin-turbowarp-extension@${packageMetadata.version}`)) {
     errors.push('README.md Installation must pin the current package version');
   }
-  if (!readme.includes(NODE_ENGINE_RANGE) || !readme.includes('Vite 6 or later')) {
+  if (!readme.includes(NODE_ENGINE_RANGE) || !readme.includes(VITE_REQUIREMENT_TEXT)) {
     errors.push('README.md Requirements must match package Node/Vite support');
   }
   if (!readme.includes('Template responsibility') || !readme.includes('Plugin responsibility')) {

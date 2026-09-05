@@ -1,6 +1,11 @@
 import {describe, expect, it} from 'vitest';
-import type {OutputAsset, OutputChunk} from 'rollup';
-import {build, type Plugin, type ResolvedConfig, type UserConfig} from 'vite';
+import {
+  build,
+  type Plugin,
+  type ResolvedConfig,
+  type Rolldown,
+  type UserConfig
+} from 'vite';
 import {
   createTurboWarpBundle,
   turboWarpExtension,
@@ -294,11 +299,11 @@ describe('Vite integration', () => {
   it('respects a minify setting from the user config', async () => {
     let resolved: ResolvedConfig | undefined;
     await buildFixture({
-      userBuild: {minify: 'esbuild'},
+      userBuild: {minify: 'oxc'},
       onResolved: (config) => (resolved = config)
     });
 
-    expect(resolved?.build.minify).toBe('esbuild');
+    expect(resolved?.build.minify).toBe('oxc');
   });
 
   it('lets the plugin option override the user config', async () => {
@@ -327,7 +332,7 @@ async function buildFixture({
   pluginOptions,
   userBuild,
   onResolved
-}: FixtureOptions = {}): Promise<Array<OutputAsset | OutputChunk>> {
+}: FixtureOptions = {}): Promise<Array<Rolldown.OutputAsset | Rolldown.OutputChunk>> {
   const virtualEntry: Plugin = {
     name: 'test-virtual-entry',
     resolveId(id) {

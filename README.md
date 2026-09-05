@@ -11,15 +11,17 @@ This package is not a TurboWarp extension by itself. It is the build plugin used
 ## Requirements
 
 - Node.js `^20.19.0 || >=22.12.0`, the range Vite 7 and later require
-- Vite 6 or later
+- Vite 8 or later
 - an ESM project using `vite build`
 
-The package is ESM-only and declares `peerDependencies.vite` as `>=6.0.0`.
+The package is ESM-only and declares `peerDependencies.vite` as `>=8.0.0`.
+Vite 8 replaced Rollup with Rolldown, and the plugin targets that build pipeline only.
+Projects still on Vite 6 or 7 should stay on 0.2.x.
 
 ## Installation
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.2.0
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.3.0
 ```
 
 ## Usage
@@ -100,7 +102,7 @@ turboWarpExtension({
 
 The generated file is laid out as `header`, `prelude`, then the IIFE. The prelude runs outside
 the wrapper, in sloppy mode, because vendored UMD bundles rely on that. Both the header and the
-prelude are concatenated after minification, so neither can be carried by Rollup's
+prelude are concatenated after minification, so neither can be carried by the bundler's
 `output.banner` — the minifier removes plain comments and relocates legal comments. See
 [docs/architecture.md](docs/architecture.md) for the details.
 
@@ -148,7 +150,7 @@ npm run check
 
 ## Release
 
-`package.json` is the version source of truth. The release tag must match `v0.2.0` for this package version.
+`package.json` is the version source of truth. The release tag must match `v0.3.0` for this package version.
 
 Before publishing:
 

@@ -8,7 +8,7 @@
     "minimum": "^20.19.0 || >=22.12.0"
   },
   "vite": {
-    "peerRange": ">=6.0.0"
+    "peerRange": ">=8.0.0"
   },
   "templateBoundary": {
     "templateOwns": ["project scaffold", "README generation wiring", "block definitions", "extension manifest generation"],
