@@ -136,6 +136,36 @@ not escaped and no charset option is needed.
 path that requires esbuild to be installed separately. A project carrying that setting over
 from Vite 7 will fail at `renderChunk`; `'oxc'` is the value to use.
 
+### Known issue: Oxc whitespace removal can change runtime behaviour
+
+Whitespace removal is the most conservative transform a minifier performs, so it is reasonable
+to expect it to preserve behaviour. On one large bundle it did not.
+
+In a 3.2 MB extension, with `compress` and `mangle` both disabled,
+`output.minify.codegen.removeWhitespace` alone was enough to break the bundled YAML parser at
+runtime: documents failed with `Nested mappings are not allowed in compact mappings`, which the
+parser raises when the text it received has lost its newlines. Turning whitespace removal off
+made the same bundle work; turning `compress` or `mangle` on, with whitespace removal off, kept
+it working.
+
+The behaviour reproduces on every rolldown in the 1.2.x line (1.2.0, 1.2.4, 1.2.6, 1.2.7), so
+it is not a recent regression, and 1.2.7 is the current release. The root cause has not been
+identified: template literals keep their newlines, and tagged template `raw` strings are intact,
+so the obvious explanations were ruled out. No upstream issue matches the symptom, though
+[oxc#24331](https://github.com/oxc-project/oxc/issues/24331) tracks runtime-correctness bugs
+found by differential testing, codegen among them, and
+[rolldown#10566](https://github.com/rolldown/rolldown/issues/10566) records a minifier fault
+that does not reproduce in the Oxc playground — so the defect can also sit in Rolldown's
+integration rather than in Oxc.
+
+`build.minify: 'terser'` is the workaround. Terser has no `build.lib` carve-out in Vite, so it
+removes whitespace, and on that bundle it produced output within 0.1% of the esbuild build the
+project had used before. It needs `terser` installed, and it is roughly an order of magnitude
+slower than Oxc.
+
+None of this affects the header or the prelude, which the plugin concatenates after the
+minifier has run.
+
 ## Vite Integration
 
 The plugin uses the following hooks:
