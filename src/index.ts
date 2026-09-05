@@ -26,23 +26,13 @@ export type TurboWarpExtensionHeader =
   | string
   | ((metadata: TurboWarpExtensionMetadata) => string);
 
-export type TurboWarpExtensionRegistrations =
-  | number
-  | {min?: number; max?: number};
-
 export interface TurboWarpExtensionOptions extends TurboWarpExtensionMetadata {
   fileName: string;
   entry?: string;
   target?: string;
-  registrations?: TurboWarpExtensionRegistrations;
   header?: TurboWarpExtensionHeader;
   prelude?: string;
   minify?: boolean;
-}
-
-interface RegistrationRange {
-  min: number;
-  max: number;
 }
 
 type AstNode = Node & Record<string, unknown>;
@@ -94,7 +84,7 @@ export function turboWarpExtension(options: TurboWarpExtensionOptions): Plugin {
     generateBundle(_outputOptions, bundle): void {
       const fail = this.error.bind(this);
       const chunk = getOnlyJavaScriptChunk(bundle, fail);
-      validateBundleCode(chunk.code, fail, options.registrations);
+      validateBundleCode(chunk.code, fail);
 
       if (options.prelude !== undefined) {
         validatePreludeCode(options.prelude, fail);
@@ -123,11 +113,8 @@ export function createTurboWarpBundle(
 
 export function validateBundleCode(
   source: string,
-  fail: (message: string) => never = defaultFailure,
-  expected: TurboWarpExtensionRegistrations = 1
+  fail: (message: string) => never = defaultFailure
 ): void {
-  const range = resolveRegistrations(expected);
-
   let ast: Node;
   try {
     ast = parse(source, {
@@ -160,9 +147,9 @@ export function validateBundleCode(
     fail('The generated TurboWarp extension must not contain import or export statements.');
   }
 
-  if (registrationCount < range.min || registrationCount > range.max) {
+  if (registrationCount !== 1) {
     fail(
-      `Expected ${describeRegistrations(range)}, but found ${registrationCount}.`
+      `Expected exactly one Scratch.extensions.register(...) call, but found ${registrationCount}.`
     );
   }
 }
@@ -278,68 +265,6 @@ function joinSections(sections: string[]): string {
     .join('\n\n');
 }
 
-function resolveRegistrations(
-  expected: TurboWarpExtensionRegistrations
-): RegistrationRange {
-  if (typeof expected === 'number') {
-    assertRegistrationCount(expected, 'registrations');
-    return {min: expected, max: expected};
-  }
-
-  if (
-    typeof expected !== 'object' ||
-    expected === null ||
-    Array.isArray(expected)
-  ) {
-    throw new TypeError(
-      'TurboWarp extension option "registrations" must be a number or a {min, max} object.'
-    );
-  }
-
-  const min = expected.min ?? 1;
-  const max = expected.max ?? Number.POSITIVE_INFINITY;
-
-  assertRegistrationCount(min, 'registrations.min');
-  if (max !== Number.POSITIVE_INFINITY) {
-    assertRegistrationCount(max, 'registrations.max');
-  }
-
-  if (min > max) {
-    throw new TypeError(
-      'TurboWarp extension option "registrations.min" must not be greater than "registrations.max".'
-    );
-  }
-
-  return {min, max};
-}
-
-function assertRegistrationCount(value: number, label: string): void {
-  if (!Number.isInteger(value) || value < 1) {
-    throw new TypeError(
-      `TurboWarp extension option "${label}" must be an integer of 1 or more.`
-    );
-  }
-}
-
-function describeRegistrations(range: RegistrationRange): string {
-  const call = (count: number): string =>
-    count === 1
-      ? 'Scratch.extensions.register(...) call'
-      : 'Scratch.extensions.register(...) calls';
-
-  if (range.min === range.max) {
-    const amount = range.min === 1 ? 'exactly one' : `exactly ${range.min}`;
-    return `${amount} ${call(range.min)}`;
-  }
-
-  if (range.max === Number.POSITIVE_INFINITY) {
-    const amount = range.min === 1 ? 'at least one' : `at least ${range.min}`;
-    return `${amount} ${call(2)}`;
-  }
-
-  return `between ${range.min} and ${range.max} ${call(2)}`;
-}
-
 function validateOptions(options: TurboWarpExtensionOptions): void {
   const required: Array<keyof TurboWarpExtensionOptions> = [
     ...METADATA_KEYS,
@@ -364,10 +289,6 @@ function validateOptions(options: TurboWarpExtensionOptions): void {
 
   if (!options.fileName.endsWith('.js')) {
     throw new TypeError('TurboWarp extension option "fileName" must end with .js.');
-  }
-
-  if (options.registrations !== undefined) {
-    resolveRegistrations(options.registrations);
   }
 
   if (

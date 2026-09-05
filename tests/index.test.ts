@@ -154,49 +154,6 @@ describe('validateBundleCode', () => {
       )
     ).toThrow(/found 2/);
   });
-
-  it('accepts multiple registrations when a lower bound is configured', () => {
-    expect(() =>
-      validateBundleCode(
-        'Scratch.extensions.register(a); Scratch.extensions.register(b);',
-        undefined,
-        {min: 1}
-      )
-    ).not.toThrow();
-  });
-
-  it('accepts an exact registration count', () => {
-    const source = Array.from(
-      {length: 7},
-      (_value, index) => `Scratch.extensions.register(e${index});`
-    ).join('\n');
-
-    expect(() => validateBundleCode(source, undefined, 7)).not.toThrow();
-    expect(() => validateBundleCode(source, undefined, 6)).toThrow(
-      /Expected exactly 6 Scratch\.extensions\.register\(\.\.\.\) calls, but found 7\./
-    );
-  });
-
-  it('reports the expected range in the failure message', () => {
-    expect(() =>
-      validateBundleCode('Scratch.extensions.register(a);', undefined, {min: 2})
-    ).toThrow(/Expected at least 2 Scratch\.extensions\.register\(\.\.\.\) calls, but found 1\./);
-
-    expect(() =>
-      validateBundleCode(
-        'Scratch.extensions.register(a); Scratch.extensions.register(b);',
-        undefined,
-        {min: 3, max: 5}
-      )
-    ).toThrow(/Expected between 3 and 5 Scratch\.extensions\.register\(\.\.\.\) calls, but found 2\./);
-  });
-
-  it('rejects an invalid registration range', () => {
-    expect(() => validateBundleCode('', undefined, 0)).toThrow(/integer of 1 or more/);
-    expect(() => validateBundleCode('', undefined, {min: 3, max: 2})).toThrow(
-      /must not be greater than/
-    );
-  });
 });
 
 describe('turboWarpExtension', () => {
@@ -222,9 +179,6 @@ describe('turboWarpExtension', () => {
   });
 
   it('rejects invalid optional options', () => {
-    expect(() =>
-      turboWarpExtension({...options, registrations: 1.5})
-    ).toThrow(/integer of 1 or more/);
     expect(() =>
       turboWarpExtension({...options, prelude: 1 as unknown as string})
     ).toThrow(/"prelude" must be a string/);
