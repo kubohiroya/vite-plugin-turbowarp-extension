@@ -19,7 +19,7 @@ The package is ESM-only and declares `peerDependencies.vite` as `>=6.0.0`.
 ## Installation
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.1.1
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.2.0
 ```
 
 ## Usage
@@ -74,13 +74,44 @@ The generated file has the following outer structure:
 })(Scratch);
 ```
 
+## Bundle extensions
+
+A bundle extension packs several TurboWarp extensions into one file. Four optional settings
+cover that shape. All of them default to the single-extension behaviour, so existing projects
+need no change.
+
+| option | type | default | effect |
+| --- | --- | --- | --- |
+| `registrations` | `number \| {min?: number; max?: number}` | `1` | accepted number of `Scratch.extensions.register(...)` calls |
+| `header` | `false \| string \| ((metadata) => string)` | the five metadata lines | `false` omits them; a string or callback replaces them |
+| `prelude` | `string` | none | inserted verbatim between the header and the wrapper |
+| `minify` | `boolean` | unset | overrides `build.minify`; when unset the project's own setting is kept |
+
+```ts
+turboWarpExtension({
+  // ...metadata
+  fileName: 'bundle.js',
+  registrations: {min: 1},
+  header: notice,
+  prelude: vendoredRuntime,
+  minify: true
+});
+```
+
+The generated file is laid out as `header`, `prelude`, then the IIFE. The prelude runs outside
+the wrapper, in sloppy mode, because vendored UMD bundles rely on that. Both the header and the
+prelude are concatenated after minification, so neither can be carried by Rollup's
+`output.banner` — the minifier removes plain comments and relocates legal comments. See
+[docs/architecture.md](docs/architecture.md) for the details.
+
 ## Build guarantees
 
 The plugin rejects builds that:
 
 - produce any output other than one JavaScript chunk;
-- retain `import` or `export` statements;
-- contain zero or multiple `Scratch.extensions.register(...)` calls;
+- retain `import` or `export` statements, in either the bundled code or the prelude;
+- make a number of `Scratch.extensions.register(...)` calls outside the `registrations` range,
+  which defaults to exactly one;
 - use an output file name that does not end in `.js`.
 
 Metadata values must be single-line strings. The extension ID may contain only lowercase letters and numbers.
@@ -90,9 +121,10 @@ Metadata values must be single-line strings. The extension ID may contain only l
 Plugin responsibility:
 
 - single-file extension output;
-- deterministic metadata header;
+- deterministic metadata header, or the configured replacement;
 - `(function (Scratch) { ... })(Scratch);` wrapper;
-- one `Scratch.extensions.register(...)` call;
+- header and prelude concatenation, after minification;
+- `Scratch.extensions.register(...)` call-count validation;
 - rejection of leftover module syntax.
 
 Template responsibility:
@@ -116,7 +148,7 @@ npm run check
 
 ## Release
 
-`package.json` is the version source of truth. The release tag must match `v0.1.1` for this package version.
+`package.json` is the version source of truth. The release tag must match `v0.2.0` for this package version.
 
 Before publishing:
 
