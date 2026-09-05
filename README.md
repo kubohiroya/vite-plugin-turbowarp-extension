@@ -10,7 +10,7 @@ This package is not a TurboWarp extension by itself. It is the build plugin used
 
 ## Requirements
 
-- Node.js 20 or later
+- Node.js `^20.19.0 || >=22.12.0`, the range Vite 7 and later require
 - Vite 6 or later
 - an ESM project using `vite build`
 
