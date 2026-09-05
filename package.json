@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/vite-plugin-turbowarp-extension",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A Vite plugin for building TypeScript projects as single-file TurboWarp extensions.",
   "type": "module",
   "license": "MPL-2.0",

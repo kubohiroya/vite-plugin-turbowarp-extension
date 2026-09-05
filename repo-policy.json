@@ -12,7 +12,7 @@
   },
   "templateBoundary": {
     "templateOwns": ["project scaffold", "README generation wiring", "block definitions", "extension manifest generation"],
-    "pluginOwns": ["single-file output", "metadata header", "IIFE wrapper", "registration-count validation", "module syntax rejection"]
+    "pluginOwns": ["single-file output", "metadata header", "IIFE wrapper", "prelude insertion", "registration-count validation", "module syntax rejection"]
   },
   "exceptions": {
     "extensionId": true,
