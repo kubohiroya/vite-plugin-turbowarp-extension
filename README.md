@@ -21,7 +21,7 @@ Projects still on Vite 6 or 7 should stay on 0.2.x.
 ## Installation
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.3.0
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.4.0
 ```
 
 ## Usage
@@ -78,13 +78,12 @@ The generated file has the following outer structure:
 
 ## Bundle extensions
 
-A bundle extension packs several TurboWarp extensions into one file. Four optional settings
+A bundle extension packs several TurboWarp extensions into one file. Three optional settings
 cover that shape. All of them default to the single-extension behaviour, so existing projects
 need no change.
 
 | option | type | default | effect |
 | --- | --- | --- | --- |
-| `registrations` | `number \| {min?: number; max?: number}` | `1` | accepted number of `Scratch.extensions.register(...)` calls |
 | `header` | `false \| string \| ((metadata) => string)` | the five metadata lines | `false` omits them; a string or callback replaces them |
 | `prelude` | `string` | none | inserted verbatim between the header and the wrapper |
 | `minify` | `boolean` | unset | overrides `build.minify`; when unset the project's own setting is kept |
@@ -93,7 +92,6 @@ need no change.
 turboWarpExtension({
   // ...metadata
   fileName: 'bundle.js',
-  registrations: {min: 1},
   header: notice,
   prelude: vendoredRuntime,
   minify: true
@@ -112,8 +110,7 @@ The plugin rejects builds that:
 
 - produce any output other than one JavaScript chunk;
 - retain `import` or `export` statements, in either the bundled code or the prelude;
-- make a number of `Scratch.extensions.register(...)` calls outside the `registrations` range,
-  which defaults to exactly one;
+- contain zero or multiple `Scratch.extensions.register(...)` calls;
 - use an output file name that does not end in `.js`.
 
 Metadata values must be single-line strings. The extension ID may contain only lowercase letters and numbers.
@@ -126,7 +123,7 @@ Plugin responsibility:
 - deterministic metadata header, or the configured replacement;
 - `(function (Scratch) { ... })(Scratch);` wrapper;
 - header and prelude concatenation, after minification;
-- `Scratch.extensions.register(...)` call-count validation;
+- one `Scratch.extensions.register(...)` call;
 - rejection of leftover module syntax.
 
 Template responsibility:
@@ -150,7 +147,7 @@ npm run check
 
 ## Release
 
-`package.json` is the version source of truth. The release tag must match `v0.3.0` for this package version.
+`package.json` is the version source of truth. The release tag must match `v0.4.0` for this package version.
 
 Before publishing:
 

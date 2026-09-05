@@ -13,7 +13,7 @@ The plugin:
 3. adds TurboWarp Extension Gallery metadata, or the configured replacement header;
 4. wraps the generated bundle as `(function (Scratch) { ... })(Scratch);`;
 5. inserts an optional vendored prelude between the header and the wrapper;
-6. validates the number of `Scratch.extensions.register(...)` calls against the configured range;
+6. validates that the extension registers exactly once;
 7. assigns the configured output file name.
 
 The plugin does not:
@@ -51,18 +51,17 @@ A successful build produces one JavaScript file with the following properties:
 - the file begins with TurboWarp metadata comments, unless `header` replaces or disables them;
 - the implementation is wrapped in an IIFE that receives `Scratch` as an argument;
 - strict mode is enabled inside the wrapper;
-- `Scratch.extensions.register(...)` occurs within the range given by `registrations`, which defaults to exactly once;
+- `Scratch.extensions.register(...)` occurs exactly once;
 - no additional JavaScript chunks are emitted;
 - no additional assets are emitted.
 
 ## Bundle Extensions
 
-A bundle extension packs several TurboWarp extensions into one file. Four options cover
+A bundle extension packs several TurboWarp extensions into one file. Three options cover
 that shape, and all of them default to the single-extension behaviour.
 
 | option | default | effect |
 | --- | --- | --- |
-| `registrations` | `1` | accepted number of `Scratch.extensions.register(...)` calls, as a count or a `{min, max}` range |
 | `header` | the five metadata lines | `false` omits them; a string or a callback replaces them |
 | `prelude` | none | inserted verbatim between the header and the wrapper |
 | `minify` | unset | overrides `build.minify`; when unset the user's own setting is kept |
