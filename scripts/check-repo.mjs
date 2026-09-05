@@ -5,6 +5,9 @@ import {promisify} from 'node:util';
 const execFileAsync = promisify(execFile);
 const errors = [];
 
+// Vite 7 and later require this range, so the plugin cannot support less.
+const NODE_ENGINE_RANGE = '^20.19.0 || >=22.12.0';
+
 const packageMetadata = JSON.parse(await readFile('package.json', 'utf8'));
 const policy = JSON.parse(await readFile('repo-policy.json', 'utf8'));
 const readme = await readFile('README.md', 'utf8');
@@ -30,7 +33,9 @@ function checkPolicy() {
   if (policy.packageType !== 'vite-plugin') errors.push('repo-policy.json packageType must be vite-plugin');
   if (policy.licensePolicy !== 'mpl-2.0') errors.push('repo-policy.json licensePolicy must be mpl-2.0');
   if (policy.packageManager !== 'npm') errors.push('repo-policy.json packageManager must be npm');
-  if (policy.node?.minimum !== '20') errors.push('repo-policy.json node.minimum must be 20');
+  if (policy.node?.minimum !== packageMetadata.engines?.node) {
+    errors.push('repo-policy.json node.minimum must match package.json engines.node');
+  }
   if (policy.vite?.peerRange !== packageMetadata.peerDependencies?.vite) {
     errors.push('repo-policy.json vite.peerRange must match package.json peerDependencies.vite');
   }
@@ -50,8 +55,8 @@ function checkPackageMetadata() {
   if (!packageMetadata.packageManager?.startsWith('npm@')) {
     errors.push('package.json packageManager must pin npm exactly');
   }
-  if (packageMetadata.engines?.node !== '>=20.0.0') {
-    errors.push('package.json engines.node must be >=20.0.0');
+  if (packageMetadata.engines?.node !== NODE_ENGINE_RANGE) {
+    errors.push(`package.json engines.node must be ${NODE_ENGINE_RANGE}`);
   }
   if (packageMetadata.peerDependencies?.vite !== '>=6.0.0') {
     errors.push('package.json peerDependencies.vite must be >=6.0.0');
@@ -87,7 +92,7 @@ function checkReadme() {
   if (!readme.includes(`@kubohiroya/vite-plugin-turbowarp-extension@${packageMetadata.version}`)) {
     errors.push('README.md Installation must pin the current package version');
   }
-  if (!readme.includes('Node.js 20 or later') || !readme.includes('Vite 6 or later')) {
+  if (!readme.includes(NODE_ENGINE_RANGE) || !readme.includes('Vite 6 or later')) {
     errors.push('README.md Requirements must match package Node/Vite support');
   }
   if (!readme.includes('Template responsibility') || !readme.includes('Plugin responsibility')) {
