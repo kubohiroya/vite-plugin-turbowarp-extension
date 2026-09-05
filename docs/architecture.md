@@ -132,6 +132,10 @@ dependencies disappear silently.
 Oxc emits non-ASCII characters as-is, so extension names and block text in other scripts are
 not escaped and no charset option is needed.
 
+`build.minify: 'esbuild'` still resolves under Vite 8, but it routes through a deprecated code
+path that requires esbuild to be installed separately. A project carrying that setting over
+from Vite 7 will fail at `renderChunk`; `'oxc'` is the value to use.
+
 ## Vite Integration
 
 The plugin uses the following hooks:

@@ -299,11 +299,11 @@ describe('Vite integration', () => {
   it('respects a minify setting from the user config', async () => {
     let resolved: ResolvedConfig | undefined;
     await buildFixture({
-      userBuild: {minify: 'esbuild'},
+      userBuild: {minify: 'oxc'},
       onResolved: (config) => (resolved = config)
     });
 
-    expect(resolved?.build.minify).toBe('esbuild');
+    expect(resolved?.build.minify).toBe('oxc');
   });
 
   it('lets the plugin option override the user config', async () => {
