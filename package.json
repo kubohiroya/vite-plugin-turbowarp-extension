@@ -46,7 +46,7 @@
     "prepublishOnly": "npm run check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "repo:check": "node scripts/check-repo.mjs",
+    "repo:check": "node scripts/check-repo.ts",
     "pack:check": "npm pack --dry-run --ignore-scripts",
     "check": "npm run typecheck && npm run test && npm run build && npm run repo:check && npm run pack:check"
   },
@@ -57,11 +57,12 @@
     "vite": ">=8.0.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.2",
     "typescript": "^5.9.3",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
   },
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.18.0"
   }
 }
