@@ -76,6 +76,50 @@ The generated file has the following outer structure:
 })(Scratch);
 ```
 
+## Sandbox requirement
+
+TurboWarp asks the user, in its extension security dialog, whether to "Run without sandbox".
+An extension that needs the unsandboxed API can declare that statically with the `unsandboxed`
+option, which adds one line to the default header right after `// License:`:
+
+| value | meaning |
+| --- | --- |
+| `'required'` | the extension cannot work sandboxed |
+| `'optional'` | it works sandboxed, with fewer features |
+| `'not-needed'` | it never needs the unsandboxed API |
+
+```ts
+turboWarpExtension({
+  // ...metadata
+  unsandboxed: 'required'
+});
+```
+
+```js
+// License: MPL-2.0
+// Unsandboxed: required
+```
+
+`@kubohiroya/sb3-toolchain` reads this line when it bundles extensions. Any other value is
+rejected at config time. Without the option the output does not change. A string `header`
+replaces the line along with the rest; a header callback receives the value as
+`metadata.unsandboxed`.
+
+Set `sandboxedGuard: true` as well to make a standalone extension react to a sandboxed load
+(`Scratch.extensions.unsandboxed !== true`) the way sb3-toolchain bundles do:
+
+- `required`: the entry does not run. A placeholder with the extension's own ID and name is
+  registered instead, its palette made of labels that explain how to reload with "Run without
+  sandbox", and `console.error` reports it. Without this, a sandboxed load that throws before
+  registering leaves TurboWarp loading the project forever.
+- `optional`: the entry runs, its palette is prefixed with a notice, and `console.warn` reports it.
+
+The notice is in English or Japanese, chosen by `Scratch.translate.language`. The guard is
+inserted at the top of the IIFE, after minification, and never spells
+`Scratch.extensions.register(`: the file still contains exactly one such call, so it can be
+bundled by sb3-toolchain. The guard is opt-in because a bundle already shows its own notice, so
+an `optional` member that also carries the guard shows the notice twice.
+
 ## Bundle extensions
 
 A bundle extension packs several TurboWarp extensions into one file. Three optional settings
@@ -84,7 +128,7 @@ need no change.
 
 | option | type | default | effect |
 | --- | --- | --- | --- |
-| `header` | `false \| string \| ((metadata) => string)` | the five metadata lines | `false` omits them; a string or callback replaces them |
+| `header` | `false \| string \| ((metadata) => string)` | the metadata lines | `false` omits them; a string or callback replaces them |
 | `prelude` | `string` | none | inserted verbatim between the header and the wrapper |
 | `minify` | `boolean` | unset | overrides `build.minify`; when unset the project's own setting is kept |
 
@@ -121,6 +165,7 @@ Plugin responsibility:
 
 - single-file extension output;
 - deterministic metadata header, or the configured replacement;
+- optional `// Unsandboxed:` declaration and sandboxed-load guard;
 - `(function (Scratch) { ... })(Scratch);` wrapper;
 - header and prelude concatenation, after minification;
 - one `Scratch.extensions.register(...)` call;
