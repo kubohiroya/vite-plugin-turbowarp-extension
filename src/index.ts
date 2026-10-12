@@ -19,7 +19,51 @@ export interface TurboWarpExtensionMetadata {
   description: string;
   author: string;
   license: string;
+  /** Present only when the `unsandboxed` option is set. */
+  unsandboxed?: TurboWarpUnsandboxedRequirement;
 }
+
+/**
+ * Whether the user must check "Run without sandbox" in TurboWarp's extension security dialog:
+ * `required` (the extension cannot work sandboxed), `optional` (it works with less) or
+ * `not-needed`. Emitted as the `// Unsandboxed:` header line that sb3-toolchain reads.
+ */
+export type TurboWarpUnsandboxedRequirement = 'required' | 'optional' | 'not-needed';
+
+export const UNSANDBOXED_REQUIREMENTS: readonly TurboWarpUnsandboxedRequirement[] =
+  Object.freeze(['required', 'optional', 'not-needed']);
+
+/**
+ * Shown in the palette when the extension runs sandboxed although it declared `required` (it then
+ * does not run) or `optional` (it runs with less). Kept identical to sb3-toolchain's
+ * `defaultSandboxedNotices`, which bundles use for the same situation.
+ */
+export const DEFAULT_SANDBOXED_NOTICES: Readonly<
+  Record<'required' | 'optional', Readonly<Record<string, string>>>
+> = Object.freeze({
+  required: Object.freeze({
+    en:
+      'This extension must run without the sandbox.\n' +
+      'Load the project again and, in the extension\n' +
+      'security dialog, check "Run without sandbox"\n' +
+      'before allowing it.',
+    ja:
+      'この拡張機能はサンドボックスなしで実行する必要があります。\n' +
+      'プロジェクトを開き直し、拡張機能セキュリティの画面で\n' +
+      '「サンドボックスなしで実行する」にチェックを付けてから\n' +
+      '許可してください。'
+  }),
+  optional: Object.freeze({
+    en:
+      'Running in the sandbox: some features are unavailable.\n' +
+      'To use them, load the project again and check\n' +
+      '"Run without sandbox" in the extension security dialog.',
+    ja:
+      'サンドボックス内で実行中のため、一部の機能が使えません。\n' +
+      '使うには、プロジェクトを開き直し、拡張機能セキュリティの画面で\n' +
+      '「サンドボックスなしで実行する」にチェックを付けてください。'
+  })
+});
 
 export type TurboWarpExtensionHeader =
   | false
@@ -33,6 +77,8 @@ export interface TurboWarpExtensionOptions extends TurboWarpExtensionMetadata {
   header?: TurboWarpExtensionHeader;
   prelude?: string;
   minify?: boolean;
+  unsandboxed?: TurboWarpUnsandboxedRequirement;
+  sandboxedGuard?: boolean;
 }
 
 type AstNode = Node & Record<string, unknown>;
@@ -105,7 +151,7 @@ export function createTurboWarpBundle(
   const sections = [
     createHeader(options),
     options.prelude ?? '',
-    wrapExtensionSource(source)
+    wrapExtensionSource(source, sandboxedGuardSource(options))
   ];
 
   return `${joinSections(sections)}\n`;
@@ -238,7 +284,8 @@ function createHeader(options: TurboWarpExtensionOptions): string {
     `// ID: ${options.id}`,
     `// Description: ${options.description}`,
     `// By: ${options.author}`,
-    `// License: ${options.license}`
+    `// License: ${options.license}`,
+    ...(options.unsandboxed === undefined ? [] : [`// Unsandboxed: ${options.unsandboxed}`])
   ].join('\n');
 }
 
@@ -250,12 +297,109 @@ function createMetadata(
     name: options.name,
     description: options.description,
     author: options.author,
-    license: options.license
+    license: options.license,
+    ...(options.unsandboxed === undefined ? {} : {unsandboxed: options.unsandboxed})
   };
 }
 
-function wrapExtensionSource(source: string): string {
-  return `(function (Scratch) {\n  'use strict';\n\n${indent(source.trim(), 2)}\n\n})(Scratch);`;
+function wrapExtensionSource(source: string, guard: string): string {
+  const body = [guard, source.trim()].filter((section) => section.length > 0).join('\n\n');
+  return `(function (Scratch) {\n  'use strict';\n\n${indent(body, 2)}\n\n})(Scratch);`;
+}
+
+/**
+ * Detects a sandboxed load (`Scratch.extensions.unsandboxed !== true`) for an extension that
+ * declared `required` or `optional`, mirroring the guard sb3-toolchain generates for bundles.
+ *
+ * `required` registers a placeholder under the extension's own ID whose palette explains how to
+ * reload unsandboxed, and returns before the entry runs: a sandboxed iframe that throws before
+ * registering leaves TurboWarp waiting forever. `optional` lets the entry run and prefixes its
+ * palette with the notice.
+ *
+ * Neither path spells `Scratch.extensions.register(`: the guard calls the function it read from
+ * `Scratch.extensions`. The entry's own call therefore stays the only textual one, which
+ * sb3-toolchain requires of bundle members, and at run time exactly one registration happens.
+ */
+function sandboxedGuardSource(options: TurboWarpExtensionOptions): string {
+  if (options.sandboxedGuard !== true) {
+    return '';
+  }
+
+  const required = options.unsandboxed === 'required';
+  const notice = DEFAULT_SANDBOXED_NOTICES[required ? 'required' : 'optional'];
+  const lines = [
+    `const SANDBOXED_EXTENSION_ID = ${JSON.stringify(options.id)};`,
+    `const SANDBOXED_EXTENSION_NAME = ${JSON.stringify(options.name)};`,
+    `const SANDBOXED_NOTICE = ${JSON.stringify(notice)};`,
+    'const SANDBOXED = !Scratch.extensions || Scratch.extensions.unsandboxed !== true;',
+    'const sandboxedNoticeText = () => {',
+    "  let locale = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en';",
+    '  try {',
+    "    if (Scratch.translate && typeof Scratch.translate.language === 'string') {",
+    '      locale = Scratch.translate.language;',
+    '    }',
+    '  } catch (_error) {',
+    '    // Fall back to the browser language.',
+    '  }',
+    '  locale = String(locale).toLowerCase();',
+    "  const language = locale.split('-')[0];",
+    '  if (Object.prototype.hasOwnProperty.call(SANDBOXED_NOTICE, locale)) return SANDBOXED_NOTICE[locale];',
+    '  if (Object.prototype.hasOwnProperty.call(SANDBOXED_NOTICE, language)) return SANDBOXED_NOTICE[language];',
+    '  return SANDBOXED_NOTICE.en;',
+    '};',
+    "const sandboxedNoticeBlocks = () => ['⚠ ' + SANDBOXED_EXTENSION_NAME, ...sandboxedNoticeText().split('\\n')]",
+    '  .filter((line) => line.length > 0)',
+    '  .map((line) => ({',
+    "    blockType: (Scratch.BlockType && Scratch.BlockType.LABEL) || 'label',",
+    '    text: line',
+    '  }));',
+    'if (SANDBOXED) {',
+    "  if (typeof console !== 'undefined') {",
+    `    const report = console.${required ? 'error' : 'warn'} || console.log;`,
+    `    report.call(console, '[' + SANDBOXED_EXTENSION_ID + '] ' + SANDBOXED_EXTENSION_NAME + ' ${
+      required ? 'requires' : 'works better with'
+    } unsandboxed loading. ' + sandboxedNoticeText().replace(/\\n/gu, ' '));`,
+    '  }',
+    '  const extensions = Scratch.extensions;',
+    '  const register = extensions.register;'
+  ];
+
+  if (required) {
+    lines.push(
+      '  class SandboxedExtensionNotice {',
+      '    getInfo() {',
+      '      return {',
+      '        id: SANDBOXED_EXTENSION_ID,',
+      '        name: SANDBOXED_EXTENSION_NAME,',
+      "        color1: '#D65C5C',",
+      '        blocks: sandboxedNoticeBlocks(),',
+      '        menus: {}',
+      '      };',
+      '    }',
+      '  }',
+      '  register.call(extensions, new SandboxedExtensionNotice());',
+      '  return;',
+      '}'
+    );
+  } else {
+    lines.push(
+      '  const noticeExtensions = Object.create(extensions);',
+      "  Object.defineProperty(noticeExtensions, 'register', {",
+      '    value: (extension) => {',
+      "      const getInfo = extension.getInfo;",
+      '      extension.getInfo = function (...args) {',
+      '        const info = getInfo.apply(this, args);',
+      '        return {...info, blocks: [...sandboxedNoticeBlocks(), ...(info.blocks || [])]};',
+      '      };',
+      '      return register.call(extensions, extension);',
+      '    }',
+      '  });',
+      "  Scratch = Object.create(Scratch, {extensions: {value: noticeExtensions}});",
+      '}'
+    );
+  }
+
+  return lines.join('\n');
 }
 
 function joinSections(sections: string[]): string {
@@ -308,6 +452,31 @@ function validateOptions(options: TurboWarpExtensionOptions): void {
 
   if (options.minify !== undefined && typeof options.minify !== 'boolean') {
     throw new TypeError('TurboWarp extension option "minify" must be a boolean.');
+  }
+
+  if (
+    options.unsandboxed !== undefined &&
+    !(UNSANDBOXED_REQUIREMENTS as readonly unknown[]).includes(options.unsandboxed)
+  ) {
+    throw new TypeError(
+      `TurboWarp extension option "unsandboxed" must be one of ${UNSANDBOXED_REQUIREMENTS.map(
+        (value) => JSON.stringify(value)
+      ).join(', ')}, but got ${JSON.stringify(options.unsandboxed)}.`
+    );
+  }
+
+  if (options.sandboxedGuard !== undefined && typeof options.sandboxedGuard !== 'boolean') {
+    throw new TypeError('TurboWarp extension option "sandboxedGuard" must be a boolean.');
+  }
+
+  if (
+    options.sandboxedGuard === true &&
+    options.unsandboxed !== 'required' &&
+    options.unsandboxed !== 'optional'
+  ) {
+    throw new TypeError(
+      'TurboWarp extension option "sandboxedGuard" needs "unsandboxed" set to "required" or "optional".'
+    );
   }
 }
 
