@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/vite-plugin-turbowarp-extension",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A Vite plugin for building TypeScript projects as single-file TurboWarp extensions.",
   "type": "module",
   "license": "MPL-2.0",
@@ -46,7 +46,7 @@
     "prepublishOnly": "npm run check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "repo:check": "node scripts/check-repo.mjs",
+    "repo:check": "node scripts/check-repo.ts",
     "pack:check": "npm pack --dry-run --ignore-scripts",
     "check": "npm run typecheck && npm run test && npm run build && npm run repo:check && npm run pack:check"
   },
@@ -63,6 +63,6 @@
     "vitest": "^5.0.0"
   },
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.18.0"
   }
 }

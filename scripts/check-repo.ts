@@ -2,18 +2,51 @@ import {readFile} from 'node:fs/promises';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 
-const execFileAsync = promisify(execFile);
-const errors = [];
+interface PackageMetadata {
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  license?: string;
+  homepage?: string;
+  packageManager?: string;
+  engines?: {node?: string};
+  peerDependencies?: {vite?: string};
+  repository?: {url?: string};
+  bugs?: {url?: string};
+  files?: string[];
+  [key: string]: unknown;
+}
 
-// Vite 7 and later require this range, so the plugin cannot support less.
-const NODE_ENGINE_RANGE = '^20.19.0 || >=22.12.0';
+interface RepoPolicy {
+  schemaVersion: number;
+  productName: string;
+  packageType: string;
+  licensePolicy: string;
+  packageManager: string;
+  node?: {minimum?: string};
+  vite?: {peerRange?: string};
+  templateBoundary?: {templateOwns?: string[]; pluginOwns?: string[]};
+}
+
+interface PackResult {
+  version: string;
+  files: {path: string}[];
+}
+
+const execFileAsync = promisify(execFile);
+const errors: string[] = [];
+
+// Node 22.18 is the first release that runs TypeScript sources without a flag,
+// which the repository scripts rely on. It also satisfies Vite 7 and later.
+const NODE_ENGINE_RANGE = '>=22.18.0';
 
 // Vite 8 replaced Rollup with Rolldown; the plugin targets that build pipeline only.
 const VITE_PEER_RANGE = '>=8.0.0';
 const VITE_REQUIREMENT_TEXT = 'Vite 8 or later';
 
-const packageMetadata = JSON.parse(await readFile('package.json', 'utf8'));
-const policy = JSON.parse(await readFile('repo-policy.json', 'utf8'));
+const packageMetadata = JSON.parse(await readFile('package.json', 'utf8')) as PackageMetadata;
+const policy = JSON.parse(await readFile('repo-policy.json', 'utf8')) as RepoPolicy;
 const readme = await readFile('README.md', 'utf8');
 const license = await readFile('LICENSE', 'utf8');
 
@@ -29,7 +62,7 @@ if (errors.length > 0) {
 
 process.stdout.write('Repository policy is aligned.\n');
 
-function checkPolicy() {
+function checkPolicy(): void {
   if (policy.schemaVersion !== 1) errors.push('repo-policy.json schemaVersion must be 1');
   if (policy.productName !== packageMetadata.name.split('/').at(-1)) {
     errors.push('repo-policy.json productName must match the package slug');
@@ -48,10 +81,11 @@ function checkPolicy() {
   }
 }
 
-function checkPackageMetadata() {
-  const requiredStrings = ['description', 'author', 'license', 'homepage', 'packageManager'];
+function checkPackageMetadata(): void {
+  const requiredStrings = ['description', 'author', 'license', 'homepage', 'packageManager'] as const;
   for (const key of requiredStrings) {
-    if (typeof packageMetadata[key] !== 'string' || packageMetadata[key].trim().length === 0) {
+    const value = packageMetadata[key];
+    if (typeof value !== 'string' || value.trim().length === 0) {
       errors.push(`package.json ${key} must be a non-empty string`);
     }
   }
@@ -76,7 +110,7 @@ function checkPackageMetadata() {
   }
 }
 
-function checkReadme() {
+function checkReadme(): void {
   if (!readme.startsWith(`# ${policy.productName}\n`)) {
     errors.push('README.md H1 must match repo-policy.json productName');
   }
@@ -107,7 +141,7 @@ function checkReadme() {
   }
 }
 
-function checkLicense() {
+function checkLicense(): void {
   if (!license.startsWith('Mozilla Public License Version 2.0\n==================================')) {
     errors.push('LICENSE must contain the Mozilla Public License Version 2.0 full text');
   }
@@ -116,9 +150,13 @@ function checkLicense() {
   }
 }
 
-async function checkPackContents() {
+async function checkPackContents(): Promise<void> {
   const {stdout} = await execFileAsync('npm', ['pack', '--dry-run', '--ignore-scripts', '--json']);
-  const [pack] = JSON.parse(stdout);
+  const [pack] = JSON.parse(stdout) as PackResult[];
+  if (!pack) {
+    errors.push('npm pack must report a package');
+    return;
+  }
   const files = new Set(pack.files.map((file) => file.path));
   for (const file of ['dist/index.js', 'dist/index.d.ts', 'docs/architecture.md', 'docs/readme-generation.md', 'README.md', 'LICENSE']) {
     if (!files.has(file)) errors.push(`npm pack must include ${file}`);

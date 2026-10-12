@@ -10,7 +10,7 @@ This package is not a TurboWarp extension by itself. It is the build plugin used
 
 ## Requirements
 
-- Node.js `^20.19.0 || >=22.12.0`, the range Vite 7 and later require
+- Node.js `>=22.18.0`, the first release that runs the TypeScript repository scripts without a flag (it also satisfies Vite 7 and later)
 - Vite 8 or later
 - an ESM project using `vite build`
 
@@ -21,7 +21,7 @@ Projects still on Vite 6 or 7 should stay on 0.2.x.
 ## Installation
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.4.0
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.5.0
 ```
 
 ## Usage
