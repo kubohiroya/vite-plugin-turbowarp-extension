@@ -21,7 +21,7 @@ Projects still on Vite 6 or 7 should stay on 0.2.x.
 ## Installation
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.5.0
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.6.0
 ```
 
 ## Usage
@@ -192,7 +192,7 @@ npm run check
 
 ## Release
 
-`package.json` is the version source of truth. The release tag must match `v0.4.0` for this package version.
+`package.json` is the version source of truth. The release tag must match `v0.6.0` for this package version.
 
 Before publishing:
 
