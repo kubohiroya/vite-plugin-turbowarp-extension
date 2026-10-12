@@ -11,10 +11,11 @@ The plugin:
 1. configures Vite to emit exactly one JavaScript file;
 2. prevents code splitting and leftover module syntax;
 3. adds TurboWarp Extension Gallery metadata, or the configured replacement header;
-4. wraps the generated bundle as `(function (Scratch) { ... })(Scratch);`;
-5. inserts an optional vendored prelude between the header and the wrapper;
-6. validates that the extension registers exactly once;
-7. assigns the configured output file name.
+4. optionally declares the `// Unsandboxed:` requirement and guards against a sandboxed load;
+5. wraps the generated bundle as `(function (Scratch) { ... })(Scratch);`;
+6. inserts an optional vendored prelude between the header and the wrapper;
+7. validates that the extension registers exactly once;
+8. assigns the configured output file name.
 
 The plugin does not:
 
@@ -55,6 +56,42 @@ A successful build produces one JavaScript file with the following properties:
 - no additional JavaScript chunks are emitted;
 - no additional assets are emitted.
 
+## Sandbox Requirement
+
+`unsandboxed: 'required' | 'optional' | 'not-needed'` appends `// Unsandboxed: <value>` to the
+default header, after `// License:`. The value set is fixed by sb3-toolchain, which reads the line
+(`extensionHeaderMetadata().unsandboxed`) and rejects anything else; the plugin rejects other
+values in `validateOptions` so the mistake surfaces at config time rather than at bundling time.
+When the option is omitted nothing is added, so existing builds stay byte-identical.
+
+`sandboxedGuard: true` (only with `required` or `optional`) inserts, as the first statements of
+the IIFE, the same guard sb3-toolchain generates for static bundles, with the same messages
+(`DEFAULT_SANDBOXED_NOTICES` mirrors `defaultSandboxedNotices`). When
+`Scratch.extensions.unsandboxed !== true`:
+
+- `required` logs `console.error`, registers a placeholder under the extension's own ID and name
+  whose blocks are labels (`'⚠ ' + name`, then the notice split on `\n`), and returns before the
+  entry runs. In TurboWarp's sandboxed iframe a throw before `register()` leaves project loading
+  hanging with no message, so not running the entry is the point.
+- `optional` logs `console.warn` and shadows the `Scratch` parameter with an object whose
+  `extensions.register` wraps the registered extension's `getInfo` to prefix the notice labels.
+  The entry's own call goes through it.
+
+### Why the guard never spells `Scratch.extensions.register(`
+
+sb3-toolchain requires each bundle member to contain exactly one textual
+`Scratch.extensions.register(` call. The guard therefore reads `register` from
+`Scratch.extensions` once and calls it with `.call(extensions, ...)`; the entry's own call stays
+the only textual one. At run time exactly one registration happens on every path — the
+placeholder or the entry — which is also what sb3-toolchain checks when it runs a member.
+
+### Why the guard is opt-in
+
+The header line is a static declaration that changes no behaviour. The guard changes the
+emitted code, and inside an sb3-toolchain bundle it is redundant: a `required` bundle returns
+before running its members, and an `optional` bundle prefixes its own notice, so a guarded
+`optional` member would show the notice twice. Standalone extensions opt in.
+
 ## Bundle Extensions
 
 A bundle extension packs several TurboWarp extensions into one file. Three options cover
@@ -62,7 +99,7 @@ that shape, and all of them default to the single-extension behaviour.
 
 | option | default | effect |
 | --- | --- | --- |
-| `header` | the five metadata lines | `false` omits them; a string or a callback replaces them |
+| `header` | the metadata lines | `false` omits them; a string or a callback replaces them |
 | `prelude` | none | inserted verbatim between the header and the wrapper |
 | `minify` | unset | overrides `build.minify`; when unset the user's own setting is kept |
 
