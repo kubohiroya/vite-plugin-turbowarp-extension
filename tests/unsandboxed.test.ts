@@ -100,7 +100,7 @@ describe('unsandboxed header', () => {
         '(function (Scratch) {',
         "  'use strict';",
         '',
-        ...entry.split('\n').map((line) => `  ${line}`),
+        entry,
         '',
         '})(Scratch);',
         ''
