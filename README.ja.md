@@ -24,7 +24,7 @@ Vite 6や7のままのプロジェクトは0.2.x系を使い続けてくださ�
 ## インストール
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.6.1
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.7.0
 ```
 
 ## 使い方
@@ -78,6 +78,31 @@ vite build
   // Bundled extension implementation
 })(Scratch);
 ```
+
+### 説明文の多言語化
+
+`descriptions`に言語タグと説明文の組を指定すると、既存の`Description`に加えて言語別コメントを出力します。
+
+```ts
+turboWarpExtension({
+  id: 'exampleextension',
+  name: 'Example Extension',
+  description: 'An example TurboWarp extension.',
+  descriptions: {ja: 'TurboWarpの機能拡張の例です。'},
+  author: 'Example Author',
+  license: 'MPL-2.0',
+  fileName: 'example-extension.js'
+});
+```
+
+```js
+// Description: An example TurboWarp extension.
+// Description[ja]: TurboWarpの機能拡張の例です。
+```
+
+実際の出力ではName・ID・Description・By・License・Unsandboxedの基本情報を先に並べ、その後に言語別コメントを言語タグ順で追加します。言語タグは`ja`・`ja-JP`などを使い、大文字・小文字を区別せず、小文字で出力します。同じタグの重複、空の説明、改行は拒否します。未指定の場合の出力は従来と同じです。
+
+対応する共通セキュリティダイアログは、Editorの言語の完全一致、基底言語、従来の`Description`の順に表示文を選びます。説明を得るために拡張コードを実行しません。`header`で全体を置き換える場合は翻訳コメントも呼び出し側で含めてください。コールバックは`metadata.descriptions`を受け取ります。
 
 ## サンドボックスの要否
 
@@ -195,7 +220,7 @@ packageアーカイブの検証を実行します。
 
 ## リリース
 
-versionのsource of truthは`package.json`です。このpackage versionに対するreleaseタグは`v0.6.0`と
+versionのsource of truthは`package.json`です。このpackage versionに対するreleaseタグは`v0.7.0`と
 一致する必要があります。
 
 公開前に次を実行します。

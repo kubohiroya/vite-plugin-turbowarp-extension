@@ -17,6 +17,8 @@ export interface TurboWarpExtensionMetadata {
   id: string;
   name: string;
   description: string;
+  /** Optional descriptions keyed by language tag, emitted without running extension code. */
+  descriptions?: Readonly<Record<string, string>>;
   author: string;
   license: string;
   /** Present only when the `unsandboxed` option is set. */
@@ -285,7 +287,10 @@ function createHeader(options: TurboWarpExtensionOptions): string {
     `// Description: ${options.description}`,
     `// By: ${options.author}`,
     `// License: ${options.license}`,
-    ...(options.unsandboxed === undefined ? [] : [`// Unsandboxed: ${options.unsandboxed}`])
+    ...(options.unsandboxed === undefined ? [] : [`// Unsandboxed: ${options.unsandboxed}`]),
+    ...Object.entries(options.descriptions ?? {})
+      .sort(([a], [b]) => a.toLowerCase().localeCompare(b.toLowerCase(), 'en'))
+      .map(([locale, description]) => `// Description[${locale.toLowerCase()}]: ${description}`)
   ].join('\n');
 }
 
@@ -296,6 +301,7 @@ function createMetadata(
     id: options.id,
     name: options.name,
     description: options.description,
+    ...(options.descriptions === undefined ? {} : {descriptions: {...options.descriptions}}),
     author: options.author,
     license: options.license,
     ...(options.unsandboxed === undefined ? {} : {unsandboxed: options.unsandboxed})
@@ -410,6 +416,23 @@ function joinSections(sections: string[]): string {
 }
 
 function validateOptions(options: TurboWarpExtensionOptions): void {
+  if (options.descriptions !== undefined) {
+    if (options.descriptions === null || typeof options.descriptions !== 'object' ||
+      Array.isArray(options.descriptions)) {
+      throw new TypeError('TurboWarp extension option "descriptions" must be a language-to-text record.');
+    }
+    const locales = new Set<string>();
+    for (const [locale, description] of Object.entries(options.descriptions)) {
+      if (!/^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$/i.test(locale) || locales.has(locale.toLowerCase())) {
+        throw new TypeError('TurboWarp extension option "descriptions" needs unique language tags.');
+      }
+      if (typeof description !== 'string' || description.trim() === '' ||
+        /[\r\n\u2028\u2029]/.test(description)) {
+        throw new TypeError('TurboWarp extension option "descriptions" needs non-empty single-line strings.');
+      }
+      locales.add(locale.toLowerCase());
+    }
+  }
   const required: Array<keyof TurboWarpExtensionOptions> = [
     ...METADATA_KEYS,
     'fileName'
