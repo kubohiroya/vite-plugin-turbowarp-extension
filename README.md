@@ -23,7 +23,7 @@ Projects still on Vite 6 or 7 should stay on 0.2.x.
 ## Installation
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.6.1
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.7.0
 ```
 
 ## Usage
@@ -77,6 +77,29 @@ The generated file has the following outer structure:
   // Bundled extension implementation
 })(Scratch);
 ```
+
+### Localized descriptions
+
+The optional `descriptions` record emits language-tagged descriptions alongside the existing
+`Description` header.
+
+```ts
+// Add to the turboWarpExtension options shown above.
+descriptions: {ja: 'TurboWarpの機能拡張の例です。'}
+```
+
+```js
+// Description: An example TurboWarp extension.
+// Description[ja]: TurboWarpの機能拡張の例です。
+```
+
+The actual output keeps Name, ID, Description, By, License and Unsandboxed first, then appends
+localized descriptions in language-tag order. Tags such as `ja` and `ja-JP` are case-insensitive
+and emitted in lowercase. Duplicate tags, empty descriptions and line breaks are rejected.
+Without this option the output is unchanged. A supporting security dialog selects an exact
+Editor locale, then its base language, then the original `Description`, without evaluating
+extension code. A custom `header` replaces these comments too; callbacks receive
+`metadata.descriptions`.
 
 ## Sandbox requirement
 
@@ -194,7 +217,7 @@ npm run check
 
 ## Release
 
-`package.json` is the version source of truth. The release tag must match `v0.6.0` for this package version.
+`package.json` is the version source of truth. The release tag must match `v0.7.0` for this package version.
 
 Before publishing:
 
