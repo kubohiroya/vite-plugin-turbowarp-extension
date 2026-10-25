@@ -1,6 +1,6 @@
 # vite-plugin-turbowarp-extension
 
-[日本語](README.ja.md)
+English | [日本語](README.ja.md)
 
 A Vite plugin for building TypeScript projects as single-file TurboWarp extensions.
 
