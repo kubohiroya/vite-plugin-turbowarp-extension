@@ -24,7 +24,7 @@ Vite 6や7のままのプロジェクトは0.2.x系を使い続けてくださ�
 ## インストール
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.7.1
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.8.0
 ```
 
 ## 使い方
@@ -221,7 +221,7 @@ packageアーカイブの検証を実行します。
 
 ## リリース
 
-versionのsource of truthは`package.json`です。このpackage versionに対するreleaseタグは`v0.7.1`と
+versionのsource of truthは`package.json`です。このpackage versionに対するreleaseタグは`v0.8.0`と
 一致する必要があります。
 
 公開前に次を実行します。
