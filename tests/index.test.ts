@@ -106,6 +106,14 @@ describe('createTurboWarpBundle', () => {
 
     expect(result.indexOf(prelude)).toBeLessThan(result.indexOf("'use strict';"));
   });
+
+  it('keeps line breaks inside template literals unchanged', () => {
+    const source = 'const NL = `\n`;\nconst SVG = `<svg>\n<g/>\n</svg>`;\nScratch.extensions.register({});';
+    const result = createTurboWarpBundle(options, source);
+
+    expect(result).toContain('const NL = `\n`;');
+    expect(result).toContain('`<svg>\n<g/>\n</svg>`');
+  });
 });
 
 describe('validateBundleCode', () => {
@@ -241,6 +249,25 @@ describe('Vite integration', () => {
       .slice(minifiedCode.indexOf("'use strict';") + "'use strict';".length)
       .replace(/\}\)\(Scratch\);\s*$/, '');
     expect(() => validateBundleCode(body)).not.toThrow();
+  });
+
+  it.each([false, true])('keeps template literal values intact (minify: %s)', async (minify) => {
+    const source = [
+      'const svg = (id) => `<svg>',
+      '<g id="${id}"/>',
+      '</svg>`;',
+      "Scratch.extensions.register({svg: svg('a')});"
+    ].join('\n');
+
+    const output = await buildFixture({source, pluginOptions: {minify}});
+    const code = output[0]?.type === 'chunk' ? output[0].code : '';
+
+    const registered: unknown[] = [];
+    new Function('Scratch', code)({
+      extensions: {register: (extension: unknown) => registered.push(extension)}
+    });
+
+    expect(registered).toEqual([{svg: '<svg>\n<g id="a"/>\n</svg>'}]);
   });
 
   it('keeps the build unminified by default', async () => {

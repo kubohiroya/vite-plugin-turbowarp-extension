@@ -113,13 +113,15 @@ that shape, and all of them default to the single-extension behaviour.
 (function (Scratch) {
   'use strict';
 
-  <bundled extension code>
+<bundled extension code>
 
 })(Scratch);
 ```
 
 Sections are joined with one blank line and trailing whitespace is dropped; the content of
-each section is otherwise left alone.
+each section is otherwise left alone. The bundled code is not indented inside the wrapper:
+indenting it line by line would also indent the continuation lines of template literals and
+so change string values, such as the `` `<LF>` `` that minifiers emit for `"\n"`.
 
 ### Why the header is concatenated in `generateBundle`
 

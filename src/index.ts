@@ -308,9 +308,13 @@ function createMetadata(
   };
 }
 
+/**
+ * The body is inserted as is. Indenting it would also indent the continuation lines of
+ * template literals, which minifiers emit for every `"\n"`, and so change string values.
+ */
 function wrapExtensionSource(source: string, guard: string): string {
   const body = [guard, source.trim()].filter((section) => section.length > 0).join('\n\n');
-  return `(function (Scratch) {\n  'use strict';\n\n${indent(body, 2)}\n\n})(Scratch);`;
+  return `(function (Scratch) {\n  'use strict';\n\n${body}\n\n})(Scratch);`;
 }
 
 /**
@@ -572,14 +576,6 @@ function isNode(value: unknown): value is AstNode {
     'type' in value &&
     typeof value.type === 'string'
   );
-}
-
-function indent(source: string, spaces: number): string {
-  const prefix = ' '.repeat(spaces);
-  return source
-    .split('\n')
-    .map((line) => (line.length > 0 ? `${prefix}${line}` : line))
-    .join('\n');
 }
 
 function defaultFailure(message: string): never {
