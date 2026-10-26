@@ -32,7 +32,7 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "packageManager": "npm@11.19.0",
+  "packageManager": "pnpm@11.28.8",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -43,13 +43,13 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepack": "npm run build",
-    "prepublishOnly": "npm run check",
+    "prepack": "pnpm run build",
+    "prepublishOnly": "pnpm run check",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "repo:check": "node scripts/check-repo.ts",
     "pack:check": "npm pack --dry-run --ignore-scripts",
-    "check": "npm run typecheck && npm run test && npm run build && npm run repo:check && npm run pack:check"
+    "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run repo:check && pnpm run pack:check"
   },
   "dependencies": {
     "acorn": "^8.18.0"
@@ -64,6 +64,6 @@
     "vitest": "^5.0.0"
   },
   "engines": {
-    "node": ">=22.18.0"
+    "node": ">=24"
   }
 }
