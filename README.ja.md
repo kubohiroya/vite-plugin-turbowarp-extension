@@ -13,7 +13,7 @@ TypeScriptのプロジェクトを単一ファイルのTurboWarp拡張機能と�
 
 ## 動作条件
 
-- Node.js `>=22.18.0`。TypeScriptのリポジトリscriptをフラグなしで実行できる最初のreleaseです（Vite 7以降の要件も満たします）
+- Node.js `>=24`（TypeScriptのリポジトリscriptをフラグなしで実行でき、Vite 7以降の要件も満たします）
 - Vite 8以降
 - `vite build`を使うESMプロジェクト
 
@@ -212,11 +212,11 @@ metadataの値は1行の文字列でなければなりません。拡張機能ID
 ## 開発
 
 ```bash
-npm ci
-npm run check
+pnpm install --frozen-lockfile
+pnpm run check
 ```
 
-`npm run check`は、TypeScriptの型検査、単体テスト、packageのコンパイル、リポジトリpolicyの検証、
+`pnpm run check`は、TypeScriptの型検査、単体テスト、packageのコンパイル、リポジトリpolicyの検証、
 packageアーカイブの検証を実行します。
 
 ## リリース
@@ -227,7 +227,7 @@ versionのsource of truthは`package.json`です。このpackage versionに対�
 公開前に次を実行します。
 
 ```bash
-npm run check
+pnpm run check
 npm pack --dry-run --ignore-scripts
 ```
 

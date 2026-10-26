@@ -37,9 +37,9 @@ interface PackResult {
 const execFileAsync = promisify(execFile);
 const errors: string[] = [];
 
-// Node 22.18 is the first release that runs TypeScript sources without a flag,
-// which the repository scripts rely on. It also satisfies Vite 7 and later.
-const NODE_ENGINE_RANGE = '>=22.18.0';
+// The family supports Node 24 and later. It runs TypeScript sources without a flag,
+// which the repository scripts rely on, and satisfies Vite 7 and later.
+const NODE_ENGINE_RANGE = '>=24';
 
 // Vite 8 replaced Rollup with Rolldown; the plugin targets that build pipeline only.
 const VITE_PEER_RANGE = '>=8.0.0';
@@ -69,7 +69,7 @@ function checkPolicy(): void {
   }
   if (policy.packageType !== 'vite-plugin') errors.push('repo-policy.json packageType must be vite-plugin');
   if (policy.licensePolicy !== 'mpl-2.0') errors.push('repo-policy.json licensePolicy must be mpl-2.0');
-  if (policy.packageManager !== 'npm') errors.push('repo-policy.json packageManager must be npm');
+  if (policy.packageManager !== 'pnpm') errors.push('repo-policy.json packageManager must be pnpm');
   if (policy.node?.minimum !== packageMetadata.engines?.node) {
     errors.push('repo-policy.json node.minimum must match package.json engines.node');
   }
@@ -90,8 +90,8 @@ function checkPackageMetadata(): void {
     }
   }
   if (packageMetadata.license !== 'MPL-2.0') errors.push('package.json license must be MPL-2.0');
-  if (!packageMetadata.packageManager?.startsWith('npm@')) {
-    errors.push('package.json packageManager must pin npm exactly');
+  if (!packageMetadata.packageManager?.startsWith('pnpm@')) {
+    errors.push('package.json packageManager must pin pnpm exactly');
   }
   if (packageMetadata.engines?.node !== NODE_ENGINE_RANGE) {
     errors.push(`package.json engines.node must be ${NODE_ENGINE_RANGE}`);

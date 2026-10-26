@@ -3,9 +3,9 @@
   "productName": "vite-plugin-turbowarp-extension",
   "packageType": "vite-plugin",
   "licensePolicy": "mpl-2.0",
-  "packageManager": "npm",
+  "packageManager": "pnpm",
   "node": {
-    "minimum": ">=22.18.0"
+    "minimum": ">=24"
   },
   "vite": {
     "peerRange": ">=8.0.0"

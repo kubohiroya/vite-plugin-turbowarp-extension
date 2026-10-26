@@ -12,7 +12,7 @@ This package is not a TurboWarp extension by itself. It is the build plugin used
 
 ## Requirements
 
-- Node.js `>=22.18.0`, the first release that runs the TypeScript repository scripts without a flag (it also satisfies Vite 7 and later)
+- Node.js `>=24` (it runs the TypeScript repository scripts without a flag and satisfies Vite 7 and later)
 - Vite 8 or later
 - an ESM project using `vite build`
 
@@ -210,11 +210,11 @@ See [docs/architecture.md](docs/architecture.md) for the design and build contra
 ## Development
 
 ```bash
-npm ci
-npm run check
+pnpm install --frozen-lockfile
+pnpm run check
 ```
 
-`npm run check` performs TypeScript checking, unit tests, package compilation, repository policy validation, and package archive validation.
+`pnpm run check` performs TypeScript checking, unit tests, package compilation, repository policy validation, and package archive validation.
 
 ## Release
 
@@ -223,7 +223,7 @@ npm run check
 Before publishing:
 
 ```bash
-npm run check
+pnpm run check
 npm pack --dry-run --ignore-scripts
 ```
 
