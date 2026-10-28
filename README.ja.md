@@ -24,7 +24,7 @@ Vite 6や7のままのプロジェクトは0.2.x系を使い続けてくださ�
 ## インストール
 
 ```bash
-npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.9.0
+npm install --save-dev @kubohiroya/vite-plugin-turbowarp-extension@0.10.0
 ```
 
 ## 使い方
