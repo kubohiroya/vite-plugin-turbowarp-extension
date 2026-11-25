@@ -1,4 +1,8 @@
 import {describe, expect, it} from 'vitest';
+import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {SourceMap} from 'node:module';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
 import {
   build,
   type Plugin,
@@ -275,6 +279,42 @@ describe('Vite integration', () => {
     await buildFixture({onResolved: (config) => (resolved = config)});
 
     expect(resolved?.build.minify).toBe(false);
+  });
+
+  it('maps an emitted wrapped JavaScript position back to TypeScript', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'vite-turbowarp-map-'));
+    try {
+      const entry = path.join(root, 'extension.ts');
+      const source = [
+        'type Message = string;',
+        'function greeting(name: Message) {',
+        '  throw new Error(name);',
+        '}',
+        'Scratch.extensions.register({greeting});'
+      ];
+      await writeFile(entry, source.join('\n'));
+      await build({
+        root,
+        configFile: false,
+        logLevel: 'silent',
+        build: {sourcemap: 'hidden'},
+        plugins: [turboWarpExtension({...options, entry, prelude: '// Prelude', unsandboxed: 'optional', sandboxedGuard: true})]
+      });
+      const output = path.join(root, 'dist', options.fileName);
+      const code = await readFile(output, 'utf8');
+      const lines = code.split('\n');
+      const line = lines.findIndex((value) => value.includes('throw new Error(name)'));
+      expect(line).toBeGreaterThan(2);
+      expect(code).not.toContain('sourceMappingURL=');
+      const map = new SourceMap(JSON.parse(await readFile(output + '.map', 'utf8')));
+      expect(map.findEntry(line, lines[line]!.indexOf('throw'))).toMatchObject({
+        originalSource: '../extension.ts',
+        originalLine: 2,
+        originalColumn: 2
+      });
+    } finally {
+      await rm(root, {recursive: true, force: true});
+    }
   });
 
   it('respects a minify setting from the user config', async () => {

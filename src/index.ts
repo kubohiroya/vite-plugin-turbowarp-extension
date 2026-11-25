@@ -1,4 +1,5 @@
 import {parse, type Node} from 'acorn';
+import MagicString from 'magic-string';
 import type {Plugin, Rolldown, UserConfig} from 'vite';
 
 export {
@@ -104,6 +105,11 @@ const MODULE_SYNTAX_NODE_TYPES = new Set([
 export function turboWarpExtension(options: TurboWarpExtensionOptions): Plugin {
   validateOptions(options);
 
+  const validate = (code: string, fail: (message: string) => never) => {
+    validateBundleCode(code, fail);
+    if (options.prelude !== undefined) validatePreludeCode(options.prelude, fail);
+  };
+
   return {
     name: 'vite-plugin-turbowarp-extension',
     apply: 'build',
@@ -113,7 +119,7 @@ export function turboWarpExtension(options: TurboWarpExtensionOptions): Plugin {
         build: {
           target: options.target ?? 'es2020',
           minify: options.minify ?? userConfig.build?.minify ?? false,
-          sourcemap: false,
+          sourcemap: userConfig.build?.sourcemap ?? false,
           emptyOutDir: true,
           lib: {
             entry: options.entry ?? 'src/index.ts',
@@ -129,17 +135,24 @@ export function turboWarpExtension(options: TurboWarpExtensionOptions): Plugin {
       };
     },
 
-    generateBundle(_outputOptions, bundle): void {
+    renderChunk(code, _chunk, output) {
+      if (!output.sourcemap) return null;
+      validate(code, this.error.bind(this));
+      // Let Rolldown compose the wrapper transform with its TypeScript map.
+      const source = new MagicString(code).trimEnd();
+      const {prefix, suffix} = extensionWrapper(options, true);
+      source.prepend(prefix).append(suffix);
+      return {code: source.toString(), map: source.generateMap({hires: true})};
+    },
+
+    generateBundle(output, bundle): void {
       const fail = this.error.bind(this);
       const chunk = getOnlyJavaScriptChunk(bundle, fail);
-      validateBundleCode(chunk.code, fail);
-
-      if (options.prelude !== undefined) {
-        validatePreludeCode(options.prelude, fail);
-      }
-
       chunk.fileName = options.fileName;
-      chunk.code = createTurboWarpBundle(options, chunk.code);
+      if (!output.sourcemap) {
+        validate(chunk.code, fail);
+        chunk.code = createTurboWarpBundle(options, chunk.code);
+      }
     }
   };
 }
@@ -150,13 +163,9 @@ export function createTurboWarpBundle(
 ): string {
   validateOptions(options);
 
-  const sections = [
-    createHeader(options),
-    options.prelude ?? '',
-    wrapExtensionSource(source, sandboxedGuardSource(options))
-  ];
-
-  return `${joinSections(sections)}\n`;
+  const body = source.trim();
+  const {prefix, suffix} = extensionWrapper(options, body.length > 0);
+  return prefix + body + suffix;
 }
 
 export function validateBundleCode(
@@ -312,9 +321,11 @@ function createMetadata(
  * The body is inserted as is. Indenting it would also indent the continuation lines of
  * template literals, which minifiers emit for every `"\n"`, and so change string values.
  */
-function wrapExtensionSource(source: string, guard: string): string {
-  const body = [guard, source.trim()].filter((section) => section.length > 0).join('\n\n');
-  return `(function (Scratch) {\n  'use strict';\n\n${body}\n\n})(Scratch);`;
+function extensionWrapper(options: TurboWarpExtensionOptions, hasBody: boolean) {
+  const opening = joinSections([createHeader(options), options.prelude ?? '', "(function (Scratch) {\n  'use strict';"]);
+  const guard = sandboxedGuardSource(options);
+  const prefix = `${opening}\n\n${guard}${guard && hasBody ? '\n\n' : ''}`;
+  return {prefix, suffix: '\n\n})(Scratch);\n'};
 }
 
 /**
@@ -512,9 +523,11 @@ function getOnlyJavaScriptChunk(
   fail: (message: string) => never
 ): Rolldown.OutputChunk {
   const outputs = Object.values(bundle);
-  const output = outputs[0];
+  const output = outputs.find((item) => item.type === 'chunk');
+  const unexpected = outputs.filter((item) => item !== output &&
+    !(item.type === 'asset' && item.fileName === output?.sourcemapFileName));
 
-  if (outputs.length !== 1 || !output || output.type !== 'chunk') {
+  if (!output || unexpected.length > 0) {
     const files = outputs.map((item) => `${item.fileName} (${item.type})`).join(', ');
     fail(
       `Expected exactly one JavaScript output file, but found ${outputs.length}` +
