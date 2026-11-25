@@ -56,7 +56,8 @@
     "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run repo:check && pnpm run pack:check"
   },
   "dependencies": {
-    "acorn": "^8.18.0"
+    "acorn": "^8.18.0",
+    "magic-string": "^1.4.3"
   },
   "peerDependencies": {
     "vite": ">=8.0.0"
